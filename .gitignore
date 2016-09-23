@@ -1,0 +1,8 @@
+certs/
+newcerts/
+private/
+csr/
+
+index*
+serial*
+crlnumber
