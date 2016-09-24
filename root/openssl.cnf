@@ -20,7 +20,7 @@ certificate       = $dir/certs/root.crt
 crlnumber         = $dir/crlnumber
 crl               = $dir/crl/root.crl
 crl_extensions    = crl_ext
-default_crl_days  = 30
+default_crl_days  = 3
 
 # SHA-1 is deprecated, so use SHA-2 instead.
 default_md        = sha512
@@ -54,22 +54,6 @@ default_md          = sha512
 x509_extensions     = v3_ca
 
 [ req_distinguished_name ]
-# See <https://en.wikipedia.org/wiki/Certificate_signing_request>.
-countryName                     = Country Name (2 letter code)
-stateOrProvinceName             = State or Province Name
-localityName                    = Locality Name
-0.organizationName              = Organization Name
-organizationalUnitName          = Organizational Unit Name
-commonName                      = Common Name
-emailAddress                    = Email Address
-
-# Optionally, specify some defaults.
-countryName_default             = KR
-stateOrProvinceName_default     =
-localityName_default            =
-0.organizationName_default      = SPARCS
-organizationalUnitName_default  =
-emailAddress_default            = staff@sparcs.org
 
 [ v3_ca ]
 # Extensions for a typical CA (`man x509v3_config`).
@@ -81,18 +65,10 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 [ v3_intermediate_ca ]
 # Extensions for a typical intermediate CA (`man x509v3_config`).
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
+authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints = critical, CA:true, pathlen:0
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 [ crl_ext ]
 # Extension for CRLs (`man x509v3_config`).
 authorityKeyIdentifier=keyid:always
-
-[ ocsp ]
-# Extension for OCSP signing certificates (`man ocsp`).
-basicConstraints = CA:FALSE
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
-keyUsage = critical, digitalSignature
-extendedKeyUsage = critical, OCSPSigning

@@ -20,7 +20,7 @@ certificate       = $dir/certs/int-usr.crt
 crlnumber         = $dir/crlnumber
 crl               = $dir/crl/int-usr.crl
 crl_extensions    = crl_ext
-default_crl_days  = 30
+default_crl_days  = 3
 
 # SHA-1 is deprecated, so use SHA-2 instead.
 default_md        = sha512
@@ -68,4 +68,3 @@ crlDistributionPoints = URI:http://cert.sparcs.org/int-usr.crl
 
 [ alt_names ]
 DNS.1 = {username}
-

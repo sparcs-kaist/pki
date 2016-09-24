@@ -9,6 +9,7 @@ chmod 400 private/int-usr.key
 
 openssl req -config openssl.cnf -new \
     -key private/int-usr.key \
+    -subj "/C=KR/O=SPARCS/OU=SPARCS Users/emailAddress=wheel@sparcs.org/CN=SPARCS Intermediate CA - Users/" \
     -out csr/int-usr.csr
 
 openssl ca -batch -config ../root/openssl.cnf -extensions v3_intermediate_ca \

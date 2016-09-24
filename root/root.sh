@@ -9,5 +9,6 @@ chmod 400 private/root.key
 
 openssl req -config openssl.cnf \
     -key private/root.key \
+    -subj "/C=KR/O=SPARCS/emailAddress=staff@sparcs.org/CN=SPARCS/" \
     -new -x509 -new -days 7300 -extensions v3_ca \
     -out certs/root.crt

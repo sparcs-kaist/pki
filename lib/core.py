@@ -17,7 +17,10 @@ INT_USR_CRL = path.join(INT_USR_PATH, 'crl/int-usr.crl')
 INT_USR_CNF = path.join(INT_USR_PATH, 'openssl.cnf')
 INT_USR_CNF_TEMPLATE = path.join(INT_USR_PATH, 'usr.cnf')
 
-STORAGE_PATH = path.join(BASE_PATH, 'certs/')
+STORAGE_PATH = path.join(BASE_PATH, 'storage/')
+
+USR_SUBJ_TEMPLATE = \
+    '/C=KR/O=SPARCS/OU=SPARCS Users/CN=%s/emailAddress=%s@sparcs.org'
 
 
 class LockedFile:
@@ -35,8 +38,7 @@ class LockedFile:
 
 # Issue a certificate to given user
 def issue(username, password):
-    user_subject = "/C=KR/O=SPARCS/OU=Users/CN=%s/emailAddress=%s@sparcs.org" % \
-                   (username, username)
+    user_subject = USR_SUBJ_TEMPLATE % (username, username)
     user_p12 = path.join(STORAGE_PATH, '%s.p12' % username)
     user_key = path.join(STORAGE_PATH, '%s.key' % username)
     user_csr = path.join(STORAGE_PATH, '%s.csr' % username)
@@ -53,7 +55,8 @@ def issue(username, password):
             f_user_cnf.write(template.format(username=username))
 
         # Generate a private key
-        subprocess.check_output(["openssl", "genrsa", "-out", user_key, "4096"])
+        subprocess.check_output(["openssl", "genrsa",
+                                 "-out", user_key, "4096"])
 
         # Generate a CSR
         subprocess.check_output(["openssl", "req", "-config", user_cnf,
@@ -62,8 +65,9 @@ def issue(username, password):
                                  "-out", user_csr])
 
         # Sign the CSR
-        subprocess.check_output(["openssl", "ca", "-batch", "-config", user_cnf,
-                                 "-extensions", "usr_cert", "-days", "375", "-notext",
+        subprocess.check_output(["openssl", "ca", "-batch",
+                                 "-config", user_cnf, "-days", "375",
+                                 "-extensions", "usr_cert", "-notext",
                                  "-in", user_csr, "-out", user_crt])
 
         # Make a cert chain
@@ -74,7 +78,8 @@ def issue(username, password):
         # Combine the private key and the cert chain
         subprocess.check_output(["openssl", "pkcs12", "-export",
                                  "-in", user_fullchain, "-inkey", user_key,
-                                 "-out", user_p12, "-passout", "pass:%s" % user_password])
+                                 "-out", user_p12,
+                                 "-passout", "pass:%s" % user_password])
 
         # Remove the private key
         os.remove(user_key)
@@ -93,13 +98,16 @@ def revoke(username):
         subprocess.check_output(["openssl", "ca", "-config", INT_USR_CNF,
                                  "-revoke", user_crt])
 
-        # Regenerate CRL
-        subprocess.check_output(["openssl", "ca", "-config", INT_USR_CNF,
-                                 "-gencrl", "-out", INT_USR_CRL])
-
         # Remove other config files
         os.remove(user_p12)
         os.remove(user_csr)
         os.remove(user_crt)
         os.remove(user_cnf)
         os.remove(user_fullchain)
+
+
+# Generate CRL
+def gen_crl():
+    with LockedFile(GLOBAL_LOCK, "w+"):
+        subprocess.check_output(["openssl", "ca", "-config", INT_USR_CNF,
+                                 "-gencrl", "-out", INT_USR_CRL])
