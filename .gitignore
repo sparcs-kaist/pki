@@ -1,8 +1,14 @@
 certs/
+crl/
+csr/
 newcerts/
 private/
-csr/
 
 index*
 serial*
-crlnumber
+crlnumber*
+
+lock
+
+*.pyc
+

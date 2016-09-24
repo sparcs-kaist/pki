@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /home/samjo/cert/sparcs-pki/sign
+dir               = /home/samjo/cert/sparcs-pki/int-usr
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -13,12 +13,12 @@ serial            = $dir/serial
 RANDFILE          = $dir/private/.rand
 
 # The root key and root certificate.
-private_key       = $dir/private/sign.key
-certificate       = $dir/certs/sign.crt
+private_key       = $dir/private/int-usr.key
+certificate       = $dir/certs/int-usr.crt
 
 # For certificate revocation lists.
 crlnumber         = $dir/crlnumber
-crl               = $dir/crl/sign.crl.pem
+crl               = $dir/crl/int-usr.crl
 crl_extensions    = crl_ext
 default_crl_days  = 30
 
@@ -64,8 +64,7 @@ nsComment = "SPARCS User Certificate"
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 subjectAltName = @alt_names
-keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = clientAuth, emailProtection
+crlDistributionPoints = URI:http://cert.sparcs.org/int-usr.crl
 
 [ alt_names ]
 DNS.1 = {username}

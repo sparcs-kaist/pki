@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /home/samjo/cert/sparcs-pki/ca
+dir               = /home/samjo/cert/sparcs-pki/root
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -13,12 +13,12 @@ serial            = $dir/serial
 RANDFILE          = $dir/private/.rand
 
 # The root key and root certificate.
-private_key       = $dir/private/ca.key
-certificate       = $dir/certs/ca.crt
+private_key       = $dir/private/root.key
+certificate       = $dir/certs/root.crt
 
 # For certificate revocation lists.
 crlnumber         = $dir/crlnumber
-crl               = $dir/crl/ca.crl
+crl               = $dir/crl/root.crl
 crl_extensions    = crl_ext
 default_crl_days  = 30
 
