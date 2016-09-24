@@ -13,5 +13,6 @@ SPARCS Public Key Infrastructure
 * http://cert.sparcs.org/int-usr.crl (Planning)
 
 ## Developers
-* samjo
+* daybreaker
 * leeopop
+* samjo
