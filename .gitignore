@@ -10,5 +10,6 @@ crlnumber*
 
 lock
 
+settings.py
 *.pyc
 

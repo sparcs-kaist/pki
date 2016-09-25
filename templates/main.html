@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SPARCS Public Key Infrastructure - Web UI</title>
+</head>
+<body>
+    {% if not username %}
+        <p>Please <a href="/login/">login</a> first.</p>
+    {% else %}
+        <p>Hello, {{username}}! ({{s_expire}} sec left)</p>
+        {% if state == 'ok' %}
+            <p>Issued (valid before {{c_expire}}).</p>
+            <p><a href='/mgt/'>Click</a> to re-download.</p>
+        {% elif state == 'warn' %}
+            <p>Issued, but expired soon (valid before {{c_expire}}).</p>
+            <p><a href='/mgt/'>Click</a> to renew.</p>
+        {% elif state == 'revoked' %}
+            <p>Revoked.</p>
+            <p><a href='/mgt/'>Click</a> to issue.</p>
+        {% elif state == 'expired' %}
+            <p>Expired</p>
+            <p><a href='/mgt/'>Click</a> to issue.</p>
+        {% else %}
+            <p>Not issued.</p>
+            <p><a href='/mgt/'>Click</a> to issue.</p>
+        {% endif %}
+    {% endif %}
+</body>
+</html>

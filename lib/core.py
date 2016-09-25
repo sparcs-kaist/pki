@@ -37,7 +37,7 @@ class LockedFile:
 
 
 # Issue a certificate to given user
-def issue(username, password):
+def issue(username, password=None):
     user_subject = USR_SUBJ_TEMPLATE % (username, username)
     user_p12 = path.join(STORAGE_PATH, '%s.p12' % username)
     user_key = path.join(STORAGE_PATH, '%s.key' % username)
@@ -98,10 +98,9 @@ def revoke(username):
         subprocess.check_output(["openssl", "ca", "-config", INT_USR_CNF,
                                  "-revoke", user_crt])
 
-        # Remove other config files
+        # Remove other files, except crt
         os.remove(user_p12)
         os.remove(user_csr)
-        os.remove(user_crt)
         os.remove(user_cnf)
         os.remove(user_fullchain)
 
