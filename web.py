@@ -11,10 +11,20 @@ import os
 import time
 
 
-app = Flask('SPARCS Cert Manager')
-app.config.from_pyfile('settings.py')
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__)
+app.config.from_pyfile(os.path.join(BASE_PATH, 'settings.py'))
 
 client = Client(SSO_CLIENT_ID, SSO_CLIENT_KEY)
+
+def hash_compare(hash1, hash2):
+    if len(hash1) != len(hash2):
+        return False
+
+    for index in range(0, len(hash1)):
+        if hash1[index] != hash2[index]:
+            return False
+    return True
 
 
 def generate_cookie(username, sid, expire):
@@ -29,7 +39,7 @@ def parse_cookie(cookie):
         return None, None, 0
 
     m = hmac.new(app.secret_key, ':'.join(l[:3])).hexdigest()
-    if not hmac.compare_digest(m, str(l[3])):
+    if not hash_compare(m, str(l[3])):
         return None, None, 0
     return l[0], l[1], int(l[2])
 
@@ -103,9 +113,9 @@ def logout(auth_info=None):
     if not auth_info['username']:
         return redirect('/')
 
-    logout_url = client.get_logout_url(auth_info['sid'])
+    logout_url = client.get_logout_url(auth_info['sid'], 'https://' + request.host)
     resp = redirect(logout_url)
-    resp.set_cookie('sso', '', exipres=0, secure=(not app.debug))
+    resp.set_cookie('sso', '', expires=0, secure=(not app.debug))
     return resp
 
 
@@ -144,7 +154,7 @@ def mgt(auth_info=None):
             gen_crl()
             issue(username)
     except Exception as e:
-        return '<script>alert("Unknown error is occurred. %s"); window.history.back();</script>' % str(e)
+        return '<script>alert("Unknown error is occurred."); window.history.back();</script>'
 
     return send_file(user_p12, mimetype='application/x-pkcs12',
                      as_attachment=True,

@@ -13,4 +13,4 @@ path_*
 
 settings.py
 *.pyc
-
+*.wsgi
