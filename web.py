@@ -1,4 +1,4 @@
-from lib.core import STORAGE_PATH, INT_USR_CRL, issue, revoke, gen_crl
+from lib.core import USR_PATH, INT_USR_CRL, issue, revoke, gen_crl
 from lib.sparcsssov2 import Client
 from flask import Flask, request, redirect, \
         render_template, make_response, send_file
@@ -19,7 +19,7 @@ client = Client(SSO_CLIENT_ID, SSO_CLIENT_KEY)
 
 def generate_cookie(username, sid, expire):
     d = '%s:%s:%s' % (username, sid, expire)
-    m = hmac.new(COOKIE_SECRET, d).hexdigest()
+    m = hmac.new(app.secret_key, d).hexdigest()
     return '%s:%s' % (d, m)
 
 
@@ -28,7 +28,7 @@ def parse_cookie(cookie):
     if len(l) != 4:
         return None, None, 0
 
-    m = hmac.new(COOKIE_SECRET, ':'.join(l[:3])).hexdigest()
+    m = hmac.new(app.secret_key, ':'.join(l[:3])).hexdigest()
     if not hmac.compare_digest(m, str(l[3])):
         return None, None, 0
     return l[0], l[1], int(l[2])
@@ -52,7 +52,7 @@ def get_session(f):
 
 
 def get_state(username):
-    user_crt = os.path.join(STORAGE_PATH, '%s.crt' % username)
+    user_crt = os.path.join(USR_PATH, '%s.crt' % username)
     if not os.path.exists(user_crt):
         return 'none', 0
 
@@ -93,7 +93,7 @@ def login_callback():
                              user_data['sid'],
                              int(time.time()) + 600)
     resp = make_response(redirect('/'))
-    resp.set_cookie('sso', cookie)
+    resp.set_cookie('sso', cookie, secure=(not app.debug))
     return resp
 
 
@@ -105,7 +105,7 @@ def logout(auth_info=None):
 
     logout_url = client.get_logout_url(auth_info['sid'])
     resp = redirect(logout_url)
-    resp.set_cookie('sso', '', exipres=0, secure=True)
+    resp.set_cookie('sso', '', exipres=0, secure=(not app.debug))
     return resp
 
 
@@ -134,7 +134,7 @@ def mgt(auth_info=None):
         return redirect('/')
 
     state, c_expire = get_state(username)
-    user_p12 = os.path.join(STORAGE_PATH, '%s.p12' % username)
+    user_p12 = os.path.join(USR_PATH, '%s.p12' % username)
 
     try:
         if state in ['revoked', 'expired', 'none']:

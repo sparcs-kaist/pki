@@ -9,6 +9,7 @@ serial*
 crlnumber*
 
 lock
+path_*
 
 settings.py
 *.pyc

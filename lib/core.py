@@ -4,20 +4,22 @@ import os
 import subprocess
 
 
-BASE_PATH = path.dirname(path.dirname(path.realpath(__file__)))
+LIB_PATH = path.dirname(path.realpath(__file__))
+GLOBAL_LOCK = path.join(LIB_PATH, 'lock')
 
-GLOBAL_LOCK = path.join(BASE_PATH, 'lock')
+with open(path.join(LIB_PATH, 'path_cert'), 'r') as f:
+    CERT_PATH = f.readline().strip()
 
-ROOT_PATH = path.join(BASE_PATH, 'root/')
+ROOT_PATH = path.join(CERT_PATH, 'root/')
 ROOT_CRT = path.join(ROOT_PATH, 'certs/root.crt')
 
-INT_USR_PATH = path.join(BASE_PATH, 'int-usr/')
+INT_USR_PATH = path.join(CERT_PATH, 'int-usr/')
 INT_USR_CRT = path.join(INT_USR_PATH, 'certs/int-usr.crt')
 INT_USR_CRL = path.join(INT_USR_PATH, 'crl/int-usr.crl')
 INT_USR_CNF = path.join(INT_USR_PATH, 'openssl.cnf')
 INT_USR_CNF_TEMPLATE = path.join(INT_USR_PATH, 'usr.cnf')
 
-STORAGE_PATH = path.join(BASE_PATH, 'storage/')
+USR_PATH = path.join(CERT_PATH, 'storage/')
 
 USR_SUBJ_TEMPLATE = \
     '/C=KR/O=SPARCS/OU=SPARCS Users/CN=%s/emailAddress=%s@sparcs.org'
@@ -39,12 +41,12 @@ class LockedFile:
 # Issue a certificate to given user
 def issue(username, password=None):
     user_subject = USR_SUBJ_TEMPLATE % (username, username)
-    user_p12 = path.join(STORAGE_PATH, '%s.p12' % username)
-    user_key = path.join(STORAGE_PATH, '%s.key' % username)
-    user_csr = path.join(STORAGE_PATH, '%s.csr' % username)
-    user_crt = path.join(STORAGE_PATH, '%s.crt' % username)
-    user_cnf = path.join(STORAGE_PATH, '%s.cnf' % username)
-    user_fullchain = path.join(STORAGE_PATH, '%s.fullchain' % username)
+    user_p12 = path.join(USR_PATH, '%s.p12' % username)
+    user_key = path.join(USR_PATH, '%s.key' % username)
+    user_csr = path.join(USR_PATH, '%s.csr' % username)
+    user_crt = path.join(USR_PATH, '%s.crt' % username)
+    user_cnf = path.join(USR_PATH, '%s.cnf' % username)
+    user_fullchain = path.join(USR_PATH, '%s.fullchain' % username)
     user_password = username if not password else password
 
     with LockedFile(GLOBAL_LOCK, "w+"):
@@ -87,11 +89,11 @@ def issue(username, password=None):
 
 # Revoke given certificate
 def revoke(username):
-    user_p12 = path.join(STORAGE_PATH, '%s.p12' % username)
-    user_csr = path.join(STORAGE_PATH, '%s.csr' % username)
-    user_crt = path.join(STORAGE_PATH, '%s.crt' % username)
-    user_cnf = path.join(STORAGE_PATH, '%s.cnf' % username)
-    user_fullchain = path.join(STORAGE_PATH, '%s.fullchain' % username)
+    user_p12 = path.join(USR_PATH, '%s.p12' % username)
+    user_csr = path.join(USR_PATH, '%s.csr' % username)
+    user_crt = path.join(USR_PATH, '%s.crt' % username)
+    user_cnf = path.join(USR_PATH, '%s.cnf' % username)
+    user_fullchain = path.join(USR_PATH, '%s.fullchain' % username)
 
     with LockedFile(GLOBAL_LOCK, "w+"):
         # Revoke given certificate

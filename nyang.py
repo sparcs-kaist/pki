@@ -1,4 +1,4 @@
-from lib.core import STORAGE_PATH, issue, revoke, gen_crl
+from lib.core import USR_PATH, issue, revoke, gen_crl
 from os import path
 import argparse
 import shutil
@@ -18,7 +18,7 @@ def _copy_wrap(args):
         return
 
     try:
-        user_p12 = path.join(STORAGE_PATH, '%s.p12' % args.username)
+        user_p12 = path.join(USR_PATH, '%s.p12' % args.username)
         shutil.copy2(user_p12, args.dest)
         print('+ The cert is successfully saved to %s.' % args.dest)
     except Exception as e:
@@ -59,7 +59,7 @@ def main():
     if args.mode in ['issue', 'revoke'] and not args.username:
         parser.error('issue and revoke requires -u username')
 
-    user_p12 = path.join(STORAGE_PATH, '%s.p12' % args.username)
+    user_p12 = path.join(USR_PATH, '%s.p12' % args.username)
     if args.mode == 'issue' and path.isfile(user_p12):
         print('* There exist an cert for this user. Cert was not issued.')
         print('* Run this script with -r flag will revoke the given cert.')
