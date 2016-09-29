@@ -29,7 +29,7 @@ def hash_compare(hash1, hash2):
 
 def generate_cookie(username, sid, expire):
     d = '%s:%s:%s' % (username, sid, expire)
-    m = hmac.new(app.secret_key, d).hexdigest()
+    m = hmac.new(app.secret_key.encode(), d.encode()).hexdigest()
     return '%s:%s' % (d, m)
 
 
@@ -38,7 +38,7 @@ def parse_cookie(cookie):
     if len(l) != 4:
         return None, None, 0
 
-    m = hmac.new(app.secret_key, ':'.join(l[:3])).hexdigest()
+    m = hmac.new(app.secret_key.encode(), ':'.join(l[:3]).encode()).hexdigest()
     if not hash_compare(m, str(l[3])):
         return None, None, 0
     return l[0], l[1], int(l[2])
@@ -66,7 +66,7 @@ def get_state(username):
     if not os.path.exists(user_crt):
         return 'none', 0
 
-    with file(user_crt, 'r') as f:
+    with open(user_crt, 'r') as f:
         cert = c.load_certificate(c.FILETYPE_PEM, f.read())
 
     serial = format(cert.get_serial_number(), 'x')
@@ -77,7 +77,7 @@ def get_state(username):
             if rvk.get_serial() == serial:
                 return 'revoked', 0
 
-    expire = datetime.strptime(cert.get_notAfter(),"%Y%m%d%H%M%SZ")
+    expire = datetime.strptime(cert.get_notAfter().decode('utf-8'), "%Y%m%d%H%M%SZ")
     if expire < datetime.now():
         return 'expired', expire
     elif expire < datetime.now() - timedelta(days=10):

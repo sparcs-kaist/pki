@@ -1,3 +1,5 @@
+env/
+
 certs/
 crl/
 csr/
