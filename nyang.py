@@ -1,4 +1,4 @@
-from lib.core import USR_PATH, issue, revoke, gen_crl
+from lib.core import STORAGE_PATH, issue, revoke, gen_crl
 from os import path
 import argparse
 import shutil
@@ -6,8 +6,8 @@ import shutil
 
 def _issue_wrap(args):
     try:
-        issue(args.username, args.password)
-        print('+ A cert is successfully issued for user %s.' % args.username)
+        issue(args.cn, args.type, args.password)
+        print('+ A cert is successfully issued for cn=%s.' % args.cn)
     except Exception as e:
         print('- Exception on issuing a cert: %s' % str(e))
         exit(1)
@@ -18,8 +18,8 @@ def _copy_wrap(args):
         return
 
     try:
-        user_p12 = path.join(USR_PATH, '%s.p12' % args.username)
-        shutil.copy2(user_p12, args.dest)
+        p12 = path.join(STORAGE_PATH, '%s.p12' % args.cn)
+        shutil.copy2(p12, args.dest)
         print('+ The cert is successfully saved to %s.' % args.dest)
     except Exception as e:
         print('- Exception on copying the cert: %s' % str(e))
@@ -28,8 +28,8 @@ def _copy_wrap(args):
 
 def _revoke_wrap(args):
     try:
-        revoke(args.username)
-        print('+ A cert is successfully revoked for user %s.' % args.username)
+        revoke(args.cn, args.type)
+        print('+ A cert is successfully revoked for cn=%s.' % args.cn)
     except Exception as e:
         print('- Exception on revoking a cert: %s' % str(e))
         exit(1)
@@ -37,7 +37,7 @@ def _revoke_wrap(args):
 
 def _gen_crl_wrap(args):
     try:
-        gen_crl()
+        gen_crl(args.type)
         print('+ The CRL has been re-generated.')
     except Exception as e:
         print('- Exception on generating the CRL: %s' % str(e))
@@ -48,26 +48,28 @@ def main():
     parser = argparse.ArgumentParser(description='SPARCS Cert Management Tool')
     parser.add_argument('mode', choices=['issue', 'revoke', 'crl'],
                         help='set management mode')
-    parser.add_argument('-u', dest='username',
-                        help='a username to issue certificate')
+    parser.add_argument('type', choices=['user', 'service'],
+                        help='set certificate type')
+    parser.add_argument('-c', dest='cn',
+                        help='a username/domain to issue certificate')
     parser.add_argument('-d', dest='dest',
                         help='path to save issued cert file')
     parser.add_argument('-p', dest='password',
                         help='password to encrypt .p12 file')
     args = parser.parse_args()
 
-    if args.mode in ['issue', 'revoke'] and not args.username:
-        parser.error('issue and revoke requires -u username')
+    if args.mode in ['issue', 'revoke'] and not args.cn:
+        parser.error('issue and revoke requires -c cn')
 
-    user_p12 = path.join(USR_PATH, '%s.p12' % args.username)
-    if args.mode == 'issue' and path.isfile(user_p12):
-        print('* There exist an cert for this user. Cert was not issued.')
+    p12 = path.join(STORAGE_PATH, '%s.p12' % args.cn)
+    if args.mode == 'issue' and path.isfile(p12):
+        print('* There exist an cert for this cn. Cert was not issued.')
         print('* Run this script with -r flag will revoke the given cert.')
         _copy_wrap(args)
     elif args.mode == 'issue':
         _issue_wrap(args)
         _copy_wrap(args)
-    elif args.mode == 'revoke' and path.isfile(user_p12):
+    elif args.mode == 'revoke' and path.isfile(p12):
         _revoke_wrap(args)
         _gen_crl_wrap(args)
     elif args.mode == 'revoke':

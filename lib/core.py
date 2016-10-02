@@ -1,28 +1,8 @@
 from os import path
+from config import *
 import fcntl
 import os
 import subprocess
-
-
-LIB_PATH = path.dirname(path.realpath(__file__))
-GLOBAL_LOCK = path.join(LIB_PATH, 'lock')
-
-with open(path.join(LIB_PATH, 'path_cert'), 'r') as f:
-    CERT_PATH = f.readline().strip()
-
-ROOT_PATH = path.join(CERT_PATH, 'root/')
-ROOT_CRT = path.join(ROOT_PATH, 'certs/root.crt')
-
-INT_USR_PATH = path.join(CERT_PATH, 'int-usr/')
-INT_USR_CRT = path.join(INT_USR_PATH, 'certs/int-usr.crt')
-INT_USR_CRL = path.join(INT_USR_PATH, 'crl/int-usr.crl')
-INT_USR_CNF = path.join(INT_USR_PATH, 'openssl.cnf')
-INT_USR_CNF_TEMPLATE = path.join(INT_USR_PATH, 'usr.cnf')
-
-USR_PATH = path.join(CERT_PATH, 'storage/')
-
-USR_SUBJ_TEMPLATE = \
-    '/C=KR/O=SPARCS/OU=SPARCS Users/CN=%s/emailAddress=%s@sparcs.org'
 
 
 class LockedFile:
@@ -38,77 +18,118 @@ class LockedFile:
         self._file.close()
 
 
-# Issue a certificate to given user
-def issue(username, password=None):
-    user_subject = USR_SUBJ_TEMPLATE % (username, username)
-    user_p12 = path.join(USR_PATH, '%s.p12' % username)
-    user_key = path.join(USR_PATH, '%s.key' % username)
-    user_csr = path.join(USR_PATH, '%s.csr' % username)
-    user_crt = path.join(USR_PATH, '%s.crt' % username)
-    user_cnf = path.join(USR_PATH, '%s.cnf' % username)
-    user_fullchain = path.join(USR_PATH, '%s.fullchain' % username)
-    user_password = username if not password else password
+# Issue a certificate to given cn
+# - cn: CommonName
+# - subj: Subject
+# - cnf_template: Target CNF template path
+# - int_crt: Target intermediate cert path
+# - ext_name: Target extension name
+# - year: expiry date
+def _issue(cn, subj, cnf_template, int_crt, ext_name, year, password=None):
+    p12 = path.join(STORAGE_PATH, '%s.p12' % cn)
+    key = path.join(STORAGE_PATH, '%s.key' % cn)
+    csr = path.join(STORAGE_PATH, '%s.csr' % cn)
+    crt = path.join(STORAGE_PATH, '%s.crt' % cn)
+    cnf = path.join(STORAGE_PATH, '%s.cnf' % cn)
+    fullchain = path.join(STORAGE_PATH, '%s.fullchain' % cn)
+    password = cn if not password else password
+    days = str(year * 365 + 10)
 
     with LockedFile(GLOBAL_LOCK, "w+"):
-        with LockedFile(INT_USR_CNF_TEMPLATE, "r") as f_cnf_template:
+        with LockedFile(cnf_template, "r") as f_cnf_template:
             template = f_cnf_template.read()
 
-        with open(user_cnf, "w+") as f_user_cnf:
-            f_user_cnf.write(template.format(username=username))
+        with open(cnf, "w+") as f_cnf:
+            f_cnf.write(template.format(cn=cn))
 
         # Generate a private key
         subprocess.check_output(["openssl", "genrsa",
-                                 "-out", user_key, "4096"])
+                                 "-out", key, "4096"])
 
         # Generate a CSR
-        subprocess.check_output(["openssl", "req", "-config", user_cnf,
-                                 "-key", user_key, "-new",
-                                 "-nodes", "-subj", user_subject,
-                                 "-out", user_csr])
+        subprocess.check_output(["openssl", "req", "-config", cnf,
+                                 "-key", key, "-new",
+                                 "-nodes", "-subj", subj,
+                                 "-out", csr])
 
         # Sign the CSR
         subprocess.check_output(["openssl", "ca", "-batch",
-                                 "-config", user_cnf, "-days", "375",
-                                 "-extensions", "usr_cert", "-notext",
-                                 "-in", user_csr, "-out", user_crt])
+                                 "-config", cnf, "-days", days,
+                                 "-extensions", ext_name, "-notext",
+                                 "-in", csr, "-out", crt])
 
         # Make a cert chain
-        with LockedFile(user_fullchain, "wb") as fullchain_file:
-            subprocess.check_call(["cat", user_crt, INT_USR_CRT, ROOT_CRT],
-                                  stdout=fullchain_file)
+        with LockedFile(fullchain, "wb") as f_fullchain:
+            subprocess.check_call(["cat", crt, int_crt, ROOT_CRT],
+                                  stdout=f_fullchain)
 
         # Combine the private key and the cert chain
         subprocess.check_output(["openssl", "pkcs12", "-export",
-                                 "-in", user_fullchain, "-inkey", user_key,
-                                 "-out", user_p12,
-                                 "-passout", "pass:%s" % user_password])
+                                 "-in", fullchain, "-inkey", key,
+                                 "-out", p12,
+                                 "-passout", "pass:%s" % password])
 
         # Remove the private key
-        os.remove(user_key)
+        os.remove(key)
 
 
-# Revoke given certificate
-def revoke(username):
-    user_p12 = path.join(USR_PATH, '%s.p12' % username)
-    user_csr = path.join(USR_PATH, '%s.csr' % username)
-    user_crt = path.join(USR_PATH, '%s.crt' % username)
-    user_cnf = path.join(USR_PATH, '%s.cnf' % username)
-    user_fullchain = path.join(USR_PATH, '%s.fullchain' % username)
+# Revoke the given certificate
+# - cn: CommonName
+# - int_cnf: Target intermediate CNF path
+def _revoke(cn, int_cnf):
+    p12 = path.join(STORAGE_PATH, '%s.p12' % cn)
+    csr = path.join(STORAGE_PATH, '%s.csr' % cn)
+    crt = path.join(STORAGE_PATH, '%s.crt' % cn)
+    cnf = path.join(STORAGE_PATH, '%s.cnf' % cn)
+    fullchain = path.join(STORAGE_PATH, '%s.fullchain' % cn)
 
     with LockedFile(GLOBAL_LOCK, "w+"):
         # Revoke given certificate
-        subprocess.check_output(["openssl", "ca", "-config", INT_USR_CNF,
-                                 "-revoke", user_crt])
+        subprocess.check_output(["openssl", "ca", "-config", int_cnf,
+                                 "-revoke", crt])
 
         # Remove other files, except crt
-        os.remove(user_p12)
-        os.remove(user_csr)
-        os.remove(user_cnf)
-        os.remove(user_fullchain)
+        os.remove(p12)
+        os.remove(csr)
+        os.remove(cnf)
+        os.remove(fullchain)
 
 
 # Generate CRL
-def gen_crl():
+# - int_cnf: Target intermediate CNF path
+# - int_crl: Target intermediate CRL Path
+def _gen_crl(int_cnf, int_crl):
     with LockedFile(GLOBAL_LOCK, "w+"):
-        subprocess.check_output(["openssl", "ca", "-config", INT_USR_CNF,
-                                 "-gencrl", "-out", INT_USR_CRL])
+        subprocess.check_output(["openssl", "ca", "-config", int_cnf,
+                                 "-gencrl", "-out", int_crl])
+
+
+# Issue a certificate to user or services
+def issue(cn, type, password=None):
+    if type == 'user':
+        subj = USR_SUBJ_TEMPLATE % (cn, cn)
+        return _issue(cn, subj, INT_USR_CNF_TEMPLATE, INT_USR_CRT,
+                      "usr_cert", 1, password)
+    elif type == 'service':
+        subj = SRV_SUBJ_TEMPLATE % cn
+        return _issue(cn, subj, INT_SRV_CNF_TEMPLATE, INT_SRV_CRT,
+                      "srv_cert", 2, password)
+    raise ValueError('invalid type')
+
+
+# Revoke the given certificate
+def revoke(cn, type):
+    if type == 'user':
+        return _revoke(cn, INT_USR_CNF)
+    elif type == 'service':
+        return _revoke(cn, INT_SRV_CNF)
+    raise ValueError('invalid type')
+
+
+# Generate CRL
+def gen_crl(type):
+    if type == 'user':
+        return _gen_crl(INT_USR_CNF, INT_USR_CRL)
+    elif type == 'service':
+        return _gen_crl(INT_SRV_CNF, INT_SRV_CRL)
+    raise ValueError('invalid type')

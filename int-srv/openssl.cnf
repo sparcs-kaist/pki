@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /home/samjo/cert/pki/int-usr
+dir               = /home/samjo/cert/pki/int-srv
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -13,12 +13,12 @@ serial            = $dir/serial
 RANDFILE          = $dir/private/.rand
 
 # The root key and root certificate.
-private_key       = $dir/private/int-usr.key
-certificate       = $dir/certs/int-usr.crt
+private_key       = $dir/private/int-srv.key
+certificate       = $dir/certs/int-srv.crt
 
 # For certificate revocation lists.
 crlnumber         = $dir/crlnumber
-crl               = $dir/crl/int-usr.crl
+crl               = $dir/crl/int-srv.crl
 crl_extensions    = crl_ext
 default_crl_days  = 3
 
@@ -27,7 +27,7 @@ default_md        = sha512
 
 name_opt          = ca_default
 cert_opt          = ca_default
-default_days      = 375
+default_days      = 740
 preserve          = no
 policy            = policy_loose
 
@@ -44,7 +44,7 @@ emailAddress            = optional
 
 [ req ]
 # Options for the `req` tool (`man req`).
-default_bits        = 2048
+default_bits        = 4096
 distinguished_name  = req_distinguished_name
 string_mask         = utf8only
 
@@ -52,19 +52,18 @@ string_mask         = utf8only
 default_md          = sha512
 
 # Extension to add when the -x509 option is used.
-x509_extensions     = usr_cert
+x509_extensions     = v3_intermediate_ca
 
 [ req_distinguished_name ]
 
-[ usr_cert ]
-# Extensions for client certificates (`man x509v3_config`).
-basicConstraints = critical,CA:FALSE
-nsCertType = client, email
-nsComment = "SPARCS User Certificate"
+[ v3_intermediate_ca ]
+# Extensions for a typical intermediate CA (`man x509v3_config`).
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
-subjectAltName = @alt_names
-crlDistributionPoints = URI:http://cert.sparcs.org/int-usr.crl
+basicConstraints = critical, CA:true, pathlen:0
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
-[ alt_names ]
-DNS.1 = {cn}
+
+[ crl_ext ]
+# Extension for CRLs (`man x509v3_config`).
+authorityKeyIdentifier=keyid:always
