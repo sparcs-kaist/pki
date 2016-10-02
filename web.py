@@ -1,4 +1,5 @@
-from lib.core import USR_PATH, INT_USR_CRL, issue, revoke, gen_crl
+from lib.core import STORAGE_PATH, INT_USR_CRL, INT_SRV_CRL, \
+        issue, revoke, gen_crl
 from lib.sparcsssov2 import Client
 from flask import Flask, request, redirect, \
         render_template, make_response, send_file
@@ -62,7 +63,7 @@ def get_session(f):
 
 
 def get_state(username):
-    user_crt = os.path.join(USR_PATH, '%s.crt' % username)
+    user_crt = os.path.join(STORAGE_PATH, '%s.crt' % username)
     if not os.path.exists(user_crt):
         return 'none', 0
 
@@ -144,15 +145,15 @@ def mgt(auth_info=None):
         return redirect('/')
 
     state, c_expire = get_state(username)
-    user_p12 = os.path.join(USR_PATH, '%s.p12' % username)
+    user_p12 = os.path.join(STORAGE_PATH, '%s.p12' % username)
 
     try:
         if state in ['revoked', 'expired', 'none']:
-            issue(username)
+            issue(username, 'user')
         elif state in ['warn', ]:
-            revoke(username)
-            gen_crl()
-            issue(username)
+            revoke(username, 'user')
+            gen_crl('user')
+            issue(username, 'user')
     except Exception as e:
         return '<script>alert("Unknown error is occurred."); window.history.back();</script>'
 
@@ -164,6 +165,11 @@ def mgt(auth_info=None):
 @app.route('/int-usr.crl')
 def crl():
     return send_file(INT_USR_CRL)
+
+
+@app.route('/int-srv.crl')
+def crl():
+    return send_file(INT_SRV_CRL)
 
 
 if __name__ == '__main__':

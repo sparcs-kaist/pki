@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /home/samjo/cert/pki/int-usr
+dir               = /home/samjo/cert/pki/int-srv
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -13,12 +13,12 @@ serial            = $dir/serial
 RANDFILE          = $dir/private/.rand
 
 # The root key and root certificate.
-private_key       = $dir/private/int-usr.key
-certificate       = $dir/certs/int-usr.crt
+private_key       = $dir/private/int-srv.key
+certificate       = $dir/certs/int-srv.crt
 
 # For certificate revocation lists.
 crlnumber         = $dir/crlnumber
-crl               = $dir/crl/int-usr.crl
+crl               = $dir/crl/int-srv.crl
 crl_extensions    = crl_ext
 default_crl_days  = 3
 
@@ -27,7 +27,7 @@ default_md        = sha512
 
 name_opt          = ca_default
 cert_opt          = ca_default
-default_days      = 375
+default_days      = 740
 preserve          = no
 policy            = policy_loose
 
@@ -52,19 +52,19 @@ string_mask         = utf8only
 default_md          = sha512
 
 # Extension to add when the -x509 option is used.
-x509_extensions     = usr_cert
+x509_extensions     = srv_cert
 
 [ req_distinguished_name ]
 
-[ usr_cert ]
+[ srv_cert ]
 # Extensions for client certificates (`man x509v3_config`).
 basicConstraints = critical,CA:FALSE
-nsCertType = client, email
-nsComment = "SPARCS User Certificate"
+nsCertType = server, client, email
+nsComment = "SPARCS Server Certificate"
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 subjectAltName = @alt_names
-crlDistributionPoints = URI:http://cert.sparcs.org/int-usr.crl
+crlDistributionPoints = URI:http://cert.sparcs.org/int-srv.crl
 
 [ alt_names ]
 DNS.1 = {cn}
