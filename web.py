@@ -163,12 +163,12 @@ def mgt(auth_info=None):
 
 
 @app.route('/int-usr.crl')
-def crl():
+def usr_crl():
     return send_file(INT_USR_CRL)
 
 
 @app.route('/int-srv.crl')
-def crl():
+def srv_crl():
     return send_file(INT_SRV_CRL)
 
 
