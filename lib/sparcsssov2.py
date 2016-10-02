@@ -1,8 +1,9 @@
-import requests
+from urllib import parse
+import binascii
 import hmac
+import requests
 import time
 import os
-import urllib
 
 # SPARCS SSO V2 Client Version 1.1
 # VALID ONLY AFTER 2016-09-10T01:00+09:00
@@ -32,7 +33,7 @@ class Client:
 
         BASE_URL = '%s%s%s' % (self.DOMAIN, self.API_PREFIX, self.VERSION_PREFIX)
 
-        self.URLS = {k: '%s%s' % (BASE_URL, v) for k, v in self.URLS.iteritems()}
+        self.URLS = {k: '%s%s' % (BASE_URL, v) for k, v in self.URLS.items()}
 
         self.client_id = client_id
         self.secret_key = secret_key
@@ -51,19 +52,21 @@ class Client:
         except:
             raise RuntimeError('NOT_JSON_OBJECT')
 
+    def _get_hash(self, msg):
+        return hmac.new(self.secret_key.encode(), msg.encode()).hexdigest()
+
     def get_login_params(self):
-        state = os.urandom(10).encode('hex')
+        state = binascii.hexlify(os.urandom(10)).decode()
         params = {
             'client_id': self.client_id,
             'state': state,
         }
 
-        return ['%s?%s' % (self.URLS['token_require'], urllib.urlencode(params)), state]
+        return ['%s?%s' % (self.URLS['token_require'], parse.urlencode(params)), state]
 
     def get_user_info(self, code):
         timestamp = int(time.time())
-        sign = hmac.new(str(self.secret_key),
-                        '%s%s' % (code, timestamp)).hexdigest()
+        sign = self._get_hash('%s%s' % (code, timestamp))
 
         params = {
             'client_id': self.client_id,
@@ -75,8 +78,7 @@ class Client:
 
     def get_logout_url(self, sid, redirect_uri):
         timestamp = int(time.time())
-        sign = hmac.new(str(self.secret_key),
-                        '%s%s%s' % (sid, redirect_uri, timestamp)).hexdigest()
+        sign = hmac.new('%s%s%s' % (sid, redirect_uri, timestamp))
 
         params = {
             'client_id': self.client_id,
@@ -89,8 +91,7 @@ class Client:
 
     def do_unregister(self, sid):
         timestamp = int(time.time())
-        sign = hmac.new(str(self.secret_key),
-                        '%s%s' % (sid, timestamp)).hexdigest()
+        sign = hmac.new('%s%s' % (sid, timestamp))
 
         params = {
             'client_id': self.client_id,
@@ -105,8 +106,7 @@ class Client:
 
     def modify_point(self, sid, delta, message, lower_bound=0):
         timestamp = int(time.time())
-        sign = hmac.new(str(self.secret_key),
-                        '%s%s%s%s' % (sid, delta, lower_bound, timestamp)).hexdigest()
+        sign = hmac.new('%s%s%s%s' % (sid, delta, lower_bound, timestamp))
 
         params = {
             'client_id': self.client_id,
