@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /home/samjo/pki/storage/root
+dir               = /var/www/pki/storage/root
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -58,8 +58,8 @@ x509_extensions     = usr_cert
 [ usr_cert ]
 # Extensions for client certificates (`man x509v3_config`).
 basicConstraints = critical,CA:FALSE
-nsCertType = client,email
-nsComment = "SPARCS User Certificate"
+keyUsage = critical,digitalSignature,keyEncipherment
+extendedKeyUsage = clientAuth,emailProtection
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 subjectAltName = @alt_names

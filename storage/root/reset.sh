@@ -6,3 +6,4 @@ rm -f index*
 rm -rf newcerts/
 rm -rf private/
 rm -f serial*
+

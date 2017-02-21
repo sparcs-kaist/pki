@@ -76,8 +76,11 @@ def get_state(username):
     with open(ROOT_CRL, 'r') as f:
         crl = "".join(f.readlines())
         crl_obj = c.load_crl(c.FILETYPE_PEM, crl)
-        for rvk in crl_obj.get_revoked():
-            if rvk.get_serial() == serial:
+        revoked_list = crl_obj.get_revoked()
+        revoked_list = [] if not revoked_list else revoked_list
+        for rvk in revoked_list:
+            rvk_serial = rvk.get_serial().decode()
+            if rvk_serial == serial:
                 return 'revoked', 0
 
     expire = datetime.strptime(cert.get_notAfter().decode('utf-8'), "%Y%m%d%H%M%SZ")
