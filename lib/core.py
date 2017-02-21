@@ -1,8 +1,9 @@
 from os import path
-from .config import *
 import fcntl
 import os
 import subprocess
+
+from .config import *
 
 
 class LockedFile:
@@ -22,16 +23,15 @@ class LockedFile:
 # - cn: CommonName
 # - subj: Subject
 # - cnf_template: Target CNF template path
-# - int_crt: Target intermediate cert path
 # - ext_name: Target extension name
 # - year: expiry date
-def _issue(cn, subj, cnf_template, int_crt, ext_name, year, password=None):
-    p12 = path.join(STORAGE_PATH, '%s.p12' % cn)
-    key = path.join(STORAGE_PATH, '%s.key' % cn)
-    csr = path.join(STORAGE_PATH, '%s.csr' % cn)
-    crt = path.join(STORAGE_PATH, '%s.crt' % cn)
-    cnf = path.join(STORAGE_PATH, '%s.cnf' % cn)
-    fullchain = path.join(STORAGE_PATH, '%s.fullchain' % cn)
+def _issue(cn, subj, cnf_template, ext_name, year, password=None):
+    p12 = path.join(LEAF_PATH, '%s.p12' % cn)
+    key = path.join(LEAF_PATH, '%s.key' % cn)
+    csr = path.join(LEAF_PATH, '%s.csr' % cn)
+    crt = path.join(LEAF_PATH, '%s.crt' % cn)
+    cnf = path.join(LEAF_PATH, '%s.cnf' % cn)
+    fullchain = path.join(LEAF_PATH, '%s.fullchain' % cn)
     password = cn if not password else password
     days = str(year * 365 + 10)
 
@@ -60,8 +60,7 @@ def _issue(cn, subj, cnf_template, int_crt, ext_name, year, password=None):
 
         # Make a cert chain
         with LockedFile(fullchain, "wb") as f_fullchain:
-            subprocess.check_call(["cat", crt, int_crt, ROOT_CRT],
-                                  stdout=f_fullchain)
+            subprocess.check_call(["cat", crt, ROOT_CRT], stdout=f_fullchain)
 
         # Combine the private key and the cert chain
         subprocess.check_output(["openssl", "pkcs12", "-export",
@@ -73,19 +72,31 @@ def _issue(cn, subj, cnf_template, int_crt, ext_name, year, password=None):
         os.remove(key)
 
 
+# Issue a certificate to user or services
+# - cn: CommonName
+# - type: user|service
+def issue(cn, type, password=None):
+    if type == 'user':
+        subj = USR_SUBJ_TEMPLATE % (cn, cn)
+        return _issue(cn, subj, USR_CNF_TEMPLATE, "usr_cert", 1, password)
+    elif type == 'service':
+        subj = SRV_SUBJ_TEMPLATE % cn
+        return _issue(cn, subj, SRV_CNF_TEMPLATE, "srv_cert", 2, password)
+    raise ValueError('invalid type')
+
+
 # Revoke the given certificate
 # - cn: CommonName
-# - int_cnf: Target intermediate CNF path
-def _revoke(cn, int_cnf):
-    p12 = path.join(STORAGE_PATH, '%s.p12' % cn)
-    csr = path.join(STORAGE_PATH, '%s.csr' % cn)
-    crt = path.join(STORAGE_PATH, '%s.crt' % cn)
-    cnf = path.join(STORAGE_PATH, '%s.cnf' % cn)
-    fullchain = path.join(STORAGE_PATH, '%s.fullchain' % cn)
+def revoke(cn):
+    p12 = path.join(LEAF_PATH, '%s.p12' % cn)
+    csr = path.join(LEAF_PATH, '%s.csr' % cn)
+    crt = path.join(LEAF_PATH, '%s.crt' % cn)
+    cnf = path.join(LEAF_PATH, '%s.cnf' % cn)
+    fullchain = path.join(LEAF_PATH, '%s.fullchain' % cn)
 
     with LockedFile(GLOBAL_LOCK, "w+"):
         # Revoke given certificate
-        subprocess.check_output(["openssl", "ca", "-config", int_cnf,
+        subprocess.check_output(["openssl", "ca", "-config", ROOT_CNF,
                                  "-revoke", crt])
 
         # Remove other files, except crt
@@ -96,40 +107,7 @@ def _revoke(cn, int_cnf):
 
 
 # Generate CRL
-# - int_cnf: Target intermediate CNF path
-# - int_crl: Target intermediate CRL Path
-def _gen_crl(int_cnf, int_crl):
+def gen_crl():
     with LockedFile(GLOBAL_LOCK, "w+"):
-        subprocess.check_output(["openssl", "ca", "-config", int_cnf,
-                                 "-gencrl", "-out", int_crl])
-
-
-# Issue a certificate to user or services
-def issue(cn, type, password=None):
-    if type == 'user':
-        subj = USR_SUBJ_TEMPLATE % (cn, cn)
-        return _issue(cn, subj, INT_USR_CNF_TEMPLATE, INT_USR_CRT,
-                      "usr_cert", 1, password)
-    elif type == 'service':
-        subj = SRV_SUBJ_TEMPLATE % cn
-        return _issue(cn, subj, INT_SRV_CNF_TEMPLATE, INT_SRV_CRT,
-                      "srv_cert", 2, password)
-    raise ValueError('invalid type')
-
-
-# Revoke the given certificate
-def revoke(cn, type):
-    if type == 'user':
-        return _revoke(cn, INT_USR_CNF)
-    elif type == 'service':
-        return _revoke(cn, INT_SRV_CNF)
-    raise ValueError('invalid type')
-
-
-# Generate CRL
-def gen_crl(type):
-    if type == 'user':
-        return _gen_crl(INT_USR_CNF, INT_USR_CRL)
-    elif type == 'service':
-        return _gen_crl(INT_SRV_CNF, INT_SRV_CRL)
-    raise ValueError('invalid type')
+        subprocess.check_output(["openssl", "ca", "-config", ROOT_CNF,
+                                 "-gencrl", "-out", ROOT_CRL])

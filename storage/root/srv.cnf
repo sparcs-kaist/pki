@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /home/samjo/cert/pki/int-usr
+dir               = /home/samjo/pki/storage/root
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -13,12 +13,12 @@ serial            = $dir/serial
 RANDFILE          = $dir/private/.rand
 
 # The root key and root certificate.
-private_key       = $dir/private/int-usr.key
-certificate       = $dir/certs/int-usr.crt
+private_key       = $dir/private/root.key
+certificate       = $dir/certs/root.crt
 
 # For certificate revocation lists.
 crlnumber         = $dir/crlnumber
-crl               = $dir/crl/int-usr.crl
+crl               = $dir/crl/root.crl
 crl_extensions    = crl_ext
 default_crl_days  = 3
 
@@ -27,13 +27,12 @@ default_md        = sha512
 
 name_opt          = ca_default
 cert_opt          = ca_default
-default_days      = 375
+default_days      = 740
 preserve          = no
 policy            = policy_loose
 
 [ policy_loose ]
-# Allow the intermediate CA to sign a more diverse range of certificates.
-# See the POLICY FORMAT section of the `ca` man page.
+# See the POLICY FORMAT section of `man ca`.
 countryName             = optional
 stateOrProvinceName     = optional
 localityName            = optional
@@ -44,7 +43,7 @@ emailAddress            = optional
 
 [ req ]
 # Options for the `req` tool (`man req`).
-default_bits        = 4096
+default_bits        = 2048
 distinguished_name  = req_distinguished_name
 string_mask         = utf8only
 
@@ -52,18 +51,19 @@ string_mask         = utf8only
 default_md          = sha512
 
 # Extension to add when the -x509 option is used.
-x509_extensions     = v3_intermediate_ca
+x509_extensions     = srv_cert
 
 [ req_distinguished_name ]
 
-[ v3_intermediate_ca ]
-# Extensions for a typical intermediate CA (`man x509v3_config`).
+[ srv_cert ]
+# Extensions for client certificates (`man x509v3_config`).
+basicConstraints = critical,CA:FALSE
+nsCertType = server,email
+nsComment = "SPARCS Server Certificate"
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
-basicConstraints = critical, CA:true, pathlen:0
-keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+subjectAltName = @alt_names
+crlDistributionPoints = URI:http://cert.sparcs.org/sparcs.crl
 
-
-[ crl_ext ]
-# Extension for CRLs (`man x509v3_config`).
-authorityKeyIdentifier=keyid:always
+[ alt_names ]
+DNS.1 = {cn}

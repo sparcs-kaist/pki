@@ -1,4 +1,4 @@
-env/
+venv/
 
 certs/
 crl/
@@ -11,8 +11,9 @@ serial*
 crlnumber*
 
 lock
-path_*
 
 settings.py
 *.pyc
 *.wsgi
+
+storage/leaf/

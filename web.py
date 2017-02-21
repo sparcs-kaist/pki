@@ -1,4 +1,4 @@
-from lib.core import STORAGE_PATH, INT_USR_CRL, INT_SRV_CRL, \
+from lib.core import LEAF_PATH, ROOT_CRL, \
         issue, revoke, gen_crl
 from lib.sparcsssov2 import Client
 from flask import Flask, request, redirect, \
@@ -18,19 +18,21 @@ app.config.from_pyfile(os.path.join(BASE_PATH, 'settings.py'))
 
 client = Client(SSO_CLIENT_ID, SSO_CLIENT_KEY)
 
+
 def hash_compare(hash1, hash2):
     if len(hash1) != len(hash2):
         return False
 
+    is_equal = True
     for index in range(0, len(hash1)):
         if hash1[index] != hash2[index]:
-            return False
-    return True
+            is_equal = False
+    return is_equal
 
 
 def generate_cookie(username, sid, expire):
     d = '%s:%s:%s' % (username, sid, expire)
-    m = hmac.new(app.secret_key.encode(), d.encode()).hexdigest()
+    m = hmac.new(app.secret_key.encode(), d.encode(), 'sha256').hexdigest()
     return '%s:%s' % (d, m)
 
 
@@ -39,7 +41,7 @@ def parse_cookie(cookie):
     if len(l) != 4:
         return None, None, 0
 
-    m = hmac.new(app.secret_key.encode(), ':'.join(l[:3]).encode()).hexdigest()
+    m = hmac.new(app.secret_key.encode(), ':'.join(l[:3]).encode(), 'sha256').hexdigest()
     if not hash_compare(m, str(l[3])):
         return None, None, 0
     return l[0], l[1], int(l[2])
@@ -63,7 +65,7 @@ def get_session(f):
 
 
 def get_state(username):
-    user_crt = os.path.join(STORAGE_PATH, '%s.crt' % username)
+    user_crt = os.path.join(LEAF_PATH, '%s.crt' % username)
     if not os.path.exists(user_crt):
         return 'none', 0
 
@@ -71,7 +73,7 @@ def get_state(username):
         cert = c.load_certificate(c.FILETYPE_PEM, f.read())
 
     serial = format(cert.get_serial_number(), 'x')
-    with open(INT_USR_CRL, 'r') as f:
+    with open(ROOT_CRL, 'r') as f:
         crl = "".join(f.readlines())
         crl_obj = c.load_crl(c.FILETYPE_PEM, crl)
         for rvk in crl_obj.get_revoked():
@@ -137,15 +139,15 @@ def main(auth_info=None):
                                         state=state)
 
 
-@app.route('/mgt/')
+@app.route('/action/')
 @get_session
-def mgt(auth_info=None):
+def action(auth_info=None):
     username = auth_info['username']
     if not username:
         return redirect('/')
 
     state, c_expire = get_state(username)
-    user_p12 = os.path.join(STORAGE_PATH, '%s.p12' % username)
+    user_p12 = os.path.join(LEAF_PATH, '%s.p12' % username)
 
     try:
         if state in ['revoked', 'expired', 'none']:
@@ -162,14 +164,9 @@ def mgt(auth_info=None):
                      attachment_filename='%s.p12' % username)
 
 
-@app.route('/int-usr.crl')
-def usr_crl():
-    return send_file(INT_USR_CRL)
-
-
-@app.route('/int-srv.crl')
-def srv_crl():
-    return send_file(INT_SRV_CRL)
+@app.route('/sparcs.crl')
+def crl():
+    return send_file(ROOT_CRL)
 
 
 if __name__ == '__main__':
