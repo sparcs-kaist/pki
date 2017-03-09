@@ -4,15 +4,12 @@ SPARCS Public Key Infrastructure
 ## Certificate Chain
 ```
 + CN=SPARCS (RSA 4096, sha512RSA)
-+-- CN=SPARCS Intermediate CA - Users (RSA 4096, sha512RSA)
-+---- CN=<sparcs-id> (RSA 4096, sha512RSA)
-+-- CN=SPARCS Intermediate CA - Services (RSA 4096, sha512RSA)
-+---- CN=<domain-name> (RSA 4096, sha512RSA)
++-- CN=<sparcs-id> (RSA 4096, sha512RSA) - for users
++-- CN=<domain-name> (RSA 4096, sha512RSA) - for services
 ```
 
 ## CRL
-* http://cert.sparcs.org/int-usr.crl
-* http://cert.sparcs.org/int-srv.crl
+* http://cert.sparcs.org/sparcs.crl (max: 3days, renew: 1day)
 
 ## Developers
 * daybreaker
