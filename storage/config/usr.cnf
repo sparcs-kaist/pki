@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = {root_path}
+dir               = $ENV::PKI_ROOT_PATH
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -66,4 +66,4 @@ subjectAltName = @alt_names
 crlDistributionPoints = URI:http://cert.sparcs.org/sparcs.crl
 
 [ alt_names ]
-DNS.1 = {cn}
+DNS.1 = $ENV::PKI_CN

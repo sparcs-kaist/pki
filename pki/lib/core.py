@@ -6,10 +6,8 @@ from os import path
 
 from .path import (
     CONFIG_PATH, GLOBAL_LOCK, LEAF_PATH,
-    ROOT_CNF, ROOT_CNF_TEMPLATE,
-    ROOT_CRL, ROOT_CRT, ROOT_PATH,
-    SRV_CNF_TEMPLATE, SRV_SUBJ_TEMPLATE,
-    USR_CNF_TEMPLATE, USR_SUBJ_TEMPLATE,
+    ROOT_CNF, ROOT_CRL, ROOT_CRT, ROOT_PATH,
+    SRV_CNF, SRV_SUBJ, USR_CNF, USR_SUBJ,
 )
 
 
@@ -45,12 +43,6 @@ def init():
     with open(get_root_path('crlnumber'), 'w') as f:
         f.write('1000')
 
-    with open(ROOT_CNF_TEMPLATE, 'r') as f_cnf_template:
-        template = f_cnf_template.read()
-
-    with open(ROOT_CNF, 'w') as f_cnf:
-        f_cnf.write(template.format(root_path=ROOT_PATH))
-
     subprocess.run([
         'openssl', 'genrsa', '-out', get_root_path('private/root.key'), '4096',
     ], check=True)
@@ -61,7 +53,7 @@ def init():
         '-subj', '/C=KR/O=SPARCS/emailAddress=staff@sparcs.org/CN=SPARCS/',
         '-new', '-x509', '-new', '-days', '3650', '-extensions', 'v3_ca',
         '-out', get_root_path('certs/root.crt'),
-    ], check=True)
+    ], env={'PKI_ROOT_PATH': ROOT_PATH}, check=True)
 
 
 def clean():
@@ -69,7 +61,7 @@ def clean():
     shutil.rmtree(LEAF_PATH)
 
 
-def _issue(cn, subj, cnf_template, ext_name, valid_year, password=None):
+def _issue(cn, subj, cnf, ext_name, valid_year, password=None):
     """
     Issue a certificate to given cn
 
@@ -84,18 +76,11 @@ def _issue(cn, subj, cnf_template, ext_name, valid_year, password=None):
     key = path.join(LEAF_PATH, f'{cn}.key')
     csr = path.join(LEAF_PATH, f'{cn}.csr')
     crt = path.join(LEAF_PATH, f'{cn}.crt')
-    cnf = path.join(LEAF_PATH, f'{cn}.cnf')
     fullchain = path.join(LEAF_PATH, f'{cn}.fullchain')
     password = cn if not password else password
     days = str(int(valid_year * 365) + 10)
 
     with LockedFile(GLOBAL_LOCK, 'w+'):
-        with LockedFile(cnf_template, 'r') as f_cnf_template:
-            template = f_cnf_template.read()
-
-        with open(cnf, 'w') as f_cnf:
-            f_cnf.write(template.format(root_path=ROOT_PATH, cn=cn))
-
         # Generate a private key
         subprocess.run([
             'openssl', 'genrsa', '-out', key, '4096',
@@ -105,13 +90,13 @@ def _issue(cn, subj, cnf_template, ext_name, valid_year, password=None):
         subprocess.run([
             'openssl', 'req', '-config', cnf, '-key', key,
             '-new', '-nodes', '-subj', subj, '-out', csr,
-        ], check=True)
+        ], env={'PKI_ROOT_PATH': ROOT_PATH, 'PKI_CN': subj}, check=True)
 
         # Sign the CSR
         subprocess.run([
             'openssl', 'ca', '-batch', '-config', cnf, '-days', days,
             '-extensions', ext_name, '-notext', '-in', csr, '-out', crt,
-        ], check=True)
+        ], env={'PKI_ROOT_PATH': ROOT_PATH, 'PKI_CN': subj}, check=True)
 
         # Make a cert chain
         with LockedFile(fullchain, 'wb') as f_fullchain:
@@ -128,7 +113,6 @@ def _issue(cn, subj, cnf_template, ext_name, valid_year, password=None):
         # Remove the private key
         os.remove(key)
         os.remove(csr)
-        os.remove(cnf)
 
 
 def issue(cn, cert_type, password=None):
@@ -139,11 +123,11 @@ def issue(cn, cert_type, password=None):
     :param cert_type: Certificate type (user|service)
     """
     if cert_type == 'user':
-        subj = USR_SUBJ_TEMPLATE.format(cn, cn)
-        return _issue(cn, subj, USR_CNF_TEMPLATE, 'usr_cert', 1, password)
+        subj = USR_SUBJ.format(cn=cn)
+        return _issue(cn, subj, USR_CNF, 'usr_cert', 1, password)
     elif cert_type == 'service':
-        subj = SRV_SUBJ_TEMPLATE.format(cn)
-        return _issue(cn, subj, SRV_CNF_TEMPLATE, 'srv_cert', 2, password)
+        subj = SRV_SUBJ.format(cn=cn)
+        return _issue(cn, subj, SRV_CNF, 'srv_cert', 2, password)
     raise ValueError('invalid type')
 
 
@@ -161,7 +145,7 @@ def revoke(cn):
         # Revoke given certificate
         subprocess.run([
             'openssl', 'ca', '-config', ROOT_CNF, '-revoke', crt,
-        ], check=True)
+        ], env={'PKI_ROOT_PATH': ROOT_PATH}, check=True)
 
         # Remove other files, except crt
         os.remove(p12)
@@ -178,4 +162,4 @@ def gen_crl():
         subprocess.run([
             'openssl', 'ca', '-config', ROOT_CNF,
             '-gencrl', '-out', ROOT_CRL,
-        ], check=True)
+        ], env={'PKI_ROOT_PATH': ROOT_PATH}, check=True)

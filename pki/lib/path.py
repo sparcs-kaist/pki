@@ -11,14 +11,13 @@ GLOBAL_LOCK = join(STORAGE_PATH, '.lock')
 
 # CONFIG
 CONFIG_PATH = join(STORAGE_PATH, 'config/')
-ROOT_CNF_TEMPLATE = join(CONFIG_PATH, 'root.cnf.template')
 ROOT_CNF = join(CONFIG_PATH, 'root.cnf')
-USR_CNF_TEMPLATE = join(CONFIG_PATH, 'usr.cnf.template')
-USR_SUBJ_TEMPLATE = \
-    '/C=KR/O=SPARCS/OU=SPARCS Users/CN={}/emailAddress={}@sparcs.org'
-SRV_CNF_TEMPLATE = join(CONFIG_PATH, 'srv.cnf.template')
-SRV_SUBJ_TEMPLATE = \
-    '/C=KR/O=SPARCS/OU=SPARCS Services/CN={}'
+USR_CNF = join(CONFIG_PATH, 'usr.cnf')
+USR_SUBJ = (
+    '/C=KR/O=SPARCS/OU=SPARCS Users/CN={cn}/emailAddress={cn}@sparcs.org'
+)
+SRV_CNF = join(CONFIG_PATH, 'srv.cnf')
+SRV_SUBJ = '/C=KR/O=SPARCS/OU=SPARCS Services/CN={cn}'
 
 
 # ROOT
