@@ -1,5 +1,6 @@
 venv/
 
+storage/config/*.cnf
 storage/root/
 storage/leaf/
 storage/.lock

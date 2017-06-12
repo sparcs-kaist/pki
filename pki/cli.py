@@ -68,7 +68,7 @@ def copy(common_name, dest):
             if not chunk:
                 break
             dest.write(chunk)
-    click.echo(f'+ The cert is successfully saved to {dest}.')
+    click.echo(f'+ The cert is successfully copied.')
 
 
 @cli.command(help='Issue a new certificate')
@@ -93,7 +93,7 @@ def issue(common_name, cert_type, password):
 @cli.command(help='Revoke a given certificate')
 @OPTION_COMMON_NAME
 def revoke(common_name):
-    p12 = path.join(core.LEAF_PATH, f'{common_name}p12')
+    p12 = path.join(core.LEAF_PATH, f'{common_name}.p12')
     if not path.exists(p12):
         click.echo('- There are no cert to revoke.')
         return

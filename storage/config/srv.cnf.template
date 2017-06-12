@@ -4,7 +4,7 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = /var/www/pki/storage/root
+dir               = {root_path}
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -27,7 +27,7 @@ default_md        = sha512
 
 name_opt          = ca_default
 cert_opt          = ca_default
-default_days      = 375
+default_days      = 740
 preserve          = no
 policy            = policy_loose
 
@@ -51,15 +51,15 @@ string_mask         = utf8only
 default_md          = sha512
 
 # Extension to add when the -x509 option is used.
-x509_extensions     = usr_cert
+x509_extensions     = srv_cert
 
 [ req_distinguished_name ]
 
-[ usr_cert ]
+[ srv_cert ]
 # Extensions for client certificates (`man x509v3_config`).
 basicConstraints = critical,CA:FALSE
 keyUsage = critical,digitalSignature,keyEncipherment
-extendedKeyUsage = clientAuth,emailProtection
+extendedKeyUsage = serverAuth,clientAuth,emailProtection
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 subjectAltName = @alt_names

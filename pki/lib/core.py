@@ -6,7 +6,8 @@ from os import path
 
 from .path import (
     CONFIG_PATH, GLOBAL_LOCK, LEAF_PATH,
-    ROOT_CNF, ROOT_CRL, ROOT_CRT, ROOT_PATH,
+    ROOT_CNF, ROOT_CNF_TEMPLATE,
+    ROOT_CRL, ROOT_CRT, ROOT_PATH,
     SRV_CNF_TEMPLATE, SRV_SUBJ_TEMPLATE,
     USR_CNF_TEMPLATE, USR_SUBJ_TEMPLATE,
 )
@@ -43,6 +44,12 @@ def init():
 
     with open(get_root_path('crlnumber'), 'w') as f:
         f.write('1000')
+
+    with open(ROOT_CNF_TEMPLATE, 'r') as f_cnf_template:
+        template = f_cnf_template.read()
+
+    with open(ROOT_CNF, 'w') as f_cnf:
+        f_cnf.write(template.format(root_path=ROOT_PATH))
 
     subprocess.check_output([
         'openssl', 'genrsa', '-out', get_root_path('private/root.key'), '4096',
@@ -86,8 +93,8 @@ def _issue(cn, subj, cnf_template, ext_name, valid_year, password=None):
         with LockedFile(cnf_template, 'r') as f_cnf_template:
             template = f_cnf_template.read()
 
-        with open(cnf, 'w+') as f_cnf:
-            f_cnf.write(template.format(cn=cn))
+        with open(cnf, 'w') as f_cnf:
+            f_cnf.write(template.format(root_path=ROOT_PATH, cn=cn))
 
         # Generate a private key
         subprocess.check_output([
