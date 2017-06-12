@@ -1,4 +1,0 @@
-DEBUG = True
-SECRET_KEY = ''
-SSO_CLIENT_ID = ''
-SSO_CLIENT_KEY = ''

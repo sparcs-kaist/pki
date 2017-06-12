@@ -1,19 +1,10 @@
 venv/
 
-certs/
-crl/
-csr/
-newcerts/
-private/
-
-index*
-serial*
-crlnumber*
-
-lock
-
-settings.py
-*.pyc
-*.wsgi
-
+storage/root/
 storage/leaf/
+storage/.lock
+
+local_settings.py
+*.pyc
+*.swp
+*.wsgi
