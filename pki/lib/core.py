@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from os import path
 
-from .path import (
+from pki.lib.path import (
     CONFIG_PATH, GLOBAL_LOCK, LEAF_PATH,
     ROOT_CNF, ROOT_CRL, ROOT_CRT, ROOT_PATH,
     SRV_CNF, SRV_SUBJ, USR_CNF, USR_SUBJ,

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+source venv/bin/activate
+PYTHONPATH=`pwd` python -m pki.web.core

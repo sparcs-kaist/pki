@@ -11,21 +11,27 @@ from flask import (
 )
 from OpenSSL import crypto as c
 
-from ..lib.core import (
+from pki.lib.core import (
     gen_crl, issue, LEAF_PATH, revoke, ROOT_CRL,
 )
-from ..lib.sparcsssov2 import Client
-from ..settings import SSO_CLIENT_ID, SSO_CLIENT_KEY
+from pki.web.settings import (
+    DEBUG, SECRET_KEY, SSO_CLIENT_ID, SSO_CLIENT_KEY,
+)
+from pki.web.sparcsssov2 import Client
 
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__)
-app.config.from_pyfile(os.path.join(BASE_PATH, 'settings.py'))
 
+app = Flask(__name__)
+app.config.update({
+    'DEBUG': DEBUG,
+    'SECRET_KEY': SECRET_KEY,
+})
 client = Client(SSO_CLIENT_ID, SSO_CLIENT_KEY)
 
 
-def generate_cookie(username, sid, expire):
+def generate_cookie(username, sid):
+    expire = int(time.time()) + 600
     d = f'{username}:{sid}:{expire}'
     m = hmac.new(
         app.secret_key.encode(), d.encode(), 'sha256',
@@ -106,9 +112,7 @@ def login_callback():
     except:
         return redirect('/')
 
-    cookie = generate_cookie(user_data['sparcs_id'],
-                             user_data['sid'],
-                             int(time.time()) + 600)
+    cookie = generate_cookie(user_data['sparcs_id'], user_data['sid'])
     resp = make_response(redirect('/'))
     resp.set_cookie('sso', cookie, secure=(not app.debug))
     return resp
@@ -154,8 +158,8 @@ def action(auth_info=None):
         if state in ['revoked', 'expired', 'none']:
             issue(username, 'user')
         elif state in ['warn', ]:
-            revoke(username, 'user')
-            gen_crl('user')
+            revoke(username)
+            gen_crl()
             issue(username, 'user')
     except Exception as e:
         return '<script>alert("Unknown error is occurred.");</script>'

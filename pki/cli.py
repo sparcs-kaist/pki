@@ -2,7 +2,7 @@ from os import path
 
 import click
 
-from .lib import core
+from pki.lib import core
 
 
 OPTION_COMMON_NAME = click.option(
