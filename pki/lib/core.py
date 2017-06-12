@@ -51,17 +51,17 @@ def init():
     with open(ROOT_CNF, 'w') as f_cnf:
         f_cnf.write(template.format(root_path=ROOT_PATH))
 
-    subprocess.check_output([
+    subprocess.run([
         'openssl', 'genrsa', '-out', get_root_path('private/root.key'), '4096',
-    ])
+    ], check=True)
 
-    subprocess.check_output([
+    subprocess.run([
         'openssl', 'req', '-config', path.join(CONFIG_PATH, 'root.cnf'),
         '-key', get_root_path('private/root.key'),
         '-subj', '/C=KR/O=SPARCS/emailAddress=staff@sparcs.org/CN=SPARCS/',
         '-new', '-x509', '-new', '-days', '3650', '-extensions', 'v3_ca',
         '-out', get_root_path('certs/root.crt'),
-    ])
+    ], check=True)
 
 
 def clean():
@@ -97,31 +97,33 @@ def _issue(cn, subj, cnf_template, ext_name, valid_year, password=None):
             f_cnf.write(template.format(root_path=ROOT_PATH, cn=cn))
 
         # Generate a private key
-        subprocess.check_output([
+        subprocess.run([
             'openssl', 'genrsa', '-out', key, '4096',
-        ])
+        ], check=True)
 
         # Generate a CSR
-        subprocess.check_output([
+        subprocess.run([
             'openssl', 'req', '-config', cnf, '-key', key,
             '-new', '-nodes', '-subj', subj, '-out', csr,
-        ])
+        ], check=True)
 
         # Sign the CSR
-        subprocess.check_output([
+        subprocess.run([
             'openssl', 'ca', '-batch', '-config', cnf, '-days', days,
             '-extensions', ext_name, '-notext', '-in', csr, '-out', crt,
-        ])
+        ], check=True)
 
         # Make a cert chain
         with LockedFile(fullchain, 'wb') as f_fullchain:
-            subprocess.check_call(['cat', crt, ROOT_CRT], stdout=f_fullchain)
+            subprocess.run([
+                'cat', crt, ROOT_CRT,
+            ], stdout=f_fullchain, check=True)
 
         # Combine the private key and the cert chain
-        subprocess.check_output([
+        subprocess.run([
             'openssl', 'pkcs12', '-export', '-in', fullchain, '-inkey', key,
             '-out', p12, '-passout', f'pass:{password}',
-        ])
+        ], check=True)
 
         # Remove the private key
         os.remove(key)
@@ -157,9 +159,9 @@ def revoke(cn):
 
     with LockedFile(GLOBAL_LOCK, 'w+'):
         # Revoke given certificate
-        subprocess.check_output([
+        subprocess.run([
             'openssl', 'ca', '-config', ROOT_CNF, '-revoke', crt,
-        ])
+        ], check=True)
 
         # Remove other files, except crt
         os.remove(p12)
@@ -173,7 +175,7 @@ def gen_crl():
     Generate CRL
     """
     with LockedFile(GLOBAL_LOCK, 'w+'):
-        subprocess.check_output([
+        subprocess.run([
             'openssl', 'ca', '-config', ROOT_CNF,
             '-gencrl', '-out', ROOT_CRL,
-        ])
+        ], check=True)
