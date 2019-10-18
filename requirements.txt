@@ -8,7 +8,7 @@ enum34==1.1.6
 flake8==3.3.0
 flake8-import-order==0.12
 flake8-print==2.0.2
-Flask==0.12.2
+Flask==1.0
 idna==2.5
 ipaddress==1.0.17
 itsdangerous==0.24
